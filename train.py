@@ -1,79 +1,177 @@
 import mne
 from mne.datasets import eegbci
-from mne.time_frequency import psd_array_welch
 import numpy as np
-from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.decomposition import PCA
-from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+from sklearn.model_selection import (
+    train_test_split,
+    StratifiedKFold,
+    cross_val_score,
+    GridSearchCV,
+)
+from mne.decoding import CSP
+from sklearn.preprocessing import StandardScaler
 import joblib
 
-subject = 1
-train_runs = [3]
-label_map = {"T0": 0, "T1": 1, "T2": 2}
+EXPERIMENTS = [
+    [3, 7, 11],
+    [4, 8, 12],
+    [5, 9, 13],
+    [6, 10, 14],
+    [3, 4, 7, 8, 11, 12],
+    [5, 6, 9, 10, 13, 14],
+]
 
 
-class PSDTransformer(BaseEstimator, TransformerMixin):
-    def __init__(
-        self, fmin_alpha=8, fmax_alpha=13, fmin_beta=13, fmax_beta=30
-    ):
-        self.fmin_alpha = fmin_alpha
-        self.fmax_alpha = fmax_alpha
-        self.fmin_beta = fmin_beta
-        self.fmax_beta = fmax_beta
+def preprocess_raw(raw, l_freq=7.0, h_freq=30.0, sfreq=160):
+    if abs(raw.info.get("sfreq", 0) - sfreq) > 1e-8:
+        raw.resample(sfreq, npad="auto")
 
-    def fit(self, X, y=None):
-        return self
+    eegbci.standardize(raw)
 
-    def transform(self, X):
-        features = []
-        for raw_chunk in X:
-            data = raw_chunk.get_data()
-            psd, freqs = psd_array_welch(
-                data,
-                sfreq=raw_chunk.info["sfreq"],
-                fmin=8,
-                fmax=30,
-                n_fft=data.shape[1],
-                n_per_seg=data.shape[1],
-            )
-            psd *= 1e12
-            alpha_power = psd[
-                :, (freqs >= self.fmin_alpha) & (freqs <= self.fmax_alpha)
-            ].mean(axis=1)
-            beta_power = psd[
-                :, (freqs >= self.fmin_beta) & (freqs <= self.fmax_beta)
-            ].mean(axis=1)
-            features.append(np.concatenate([alpha_power, beta_power]))
-        return np.array(features)
+    raw.filter(l_freq, h_freq, fir_design="firwin", skip_by_annotation="edge")
+
+    return raw
 
 
-paths = eegbci.load_data(subject, train_runs)
-chunks = []
-labels = []
+def load_epochs(raw, tmin=0.5, tmax=3.5):
+    events, _ = mne.events_from_annotations(raw)
 
-for run, path in zip(train_runs, paths):
-    raw_run = mne.io.read_raw_edf(path, preload=True)
-    sfreq = raw_run.info["sfreq"]
+    valid_events = []
+    for event in events:
+        if event[2] in [1, 2]:
+            valid_events.append(event)
 
-    annotations = raw_run.annotations
-    for annot in annotations:
-        onset = annot["onset"]
-        duration = annot["duration"]
-        label_desc = annot["description"]
-        label_int = label_map.get(label_desc, 0)
-        chunk = raw_run.copy().crop(tmin=onset, tmax=onset + duration)
-        chunks.append(chunk)
-        labels.append(label_int)
+    if len(valid_events) == 0:
+        return []
+
+    events_array = np.array(valid_events)
+
+    picks = mne.pick_types(
+        raw.info,
+        eeg=True,
+        meg=False,
+        stim=False,
+        eog=False,
+        exclude="bads",
+    )
+
+    epochs = mne.Epochs(
+        raw,
+        events_array,
+        event_id={"T1": 1, "T2": 2},
+        tmin=tmin,
+        tmax=tmax,
+        picks=picks,
+        baseline=None,
+        preload=True,
+        reject_by_annotation=True,
+        verbose=False,
+    )
+
+    return epochs
 
 
-pipeline = Pipeline(
-    [
-        ("psd", PSDTransformer()),
-        ("pca", PCA(n_components=5)),
-        ("clf", SVC(kernel="linear")),
-    ]
-)
+def load_data(
+    subjects,
+    runs,
+    experiment,
+    tmin=0.5,
+    tmax=3.5,
+    l_freq=7.0,
+    h_freq=30.0,
+    sfreq=160,
+):
+    epochs_list = []
+    subjects_list = []
 
-pipeline.fit(chunks, labels)
-joblib.dump(pipeline, "eeg_pipeline.pkl")
+    if experiment is None and runs is None:
+        runs = list(range(1, 15))
+    elif experiment is not None:
+        runs = EXPERIMENTS[experiment]
+
+    for subject in subjects:
+        paths = eegbci.load_data(subject, runs)
+        for path in paths:
+            raw = mne.io.read_raw_edf(path, preload=False)
+            raw.load_data()
+
+            raw = preprocess_raw(raw, l_freq, h_freq, sfreq)
+
+            epochs = load_epochs(raw, tmin, tmax)
+
+            if len(epochs) > 0:
+                epochs_list.append(epochs)
+                subjects_list.extend([subject] * len(epochs))
+
+            raw.close()
+            del raw
+
+    if not epochs_list:
+        raise RuntimeError("No epochs found for provided subjects/runs")
+
+    all_epochs = mne.concatenate_epochs(epochs_list)
+    all_subjects = np.array(subjects_list)
+
+    return all_epochs, all_subjects
+
+
+def train(subjects, runs, experiment, out):
+    epochs, _ = load_data(
+        subjects, runs, experiment, tmin=0.5, tmax=3.5, l_freq=8.0, h_freq=30.0
+    )
+
+    if len(epochs) == 0:
+        print("No epochs found after preprocessing, aborting.")
+        return
+
+    X = epochs.get_data()
+    y = epochs.events[:, 2]
+    y = (y == 2).astype(int)
+
+    pipeline = Pipeline(
+        [
+            ("csp", CSP(n_components=4, reg=None, log=True, norm_trace=False)),
+            ("scaler", StandardScaler()),
+            ("lda", LDA(solver="lsqr", shrinkage="auto")),
+        ]
+    )
+
+    param_grid = {
+        "csp__n_components": [4, 6, 8],
+        "csp__reg": [None, 0.1, 0.5],
+    }
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, stratify=y, random_state=42
+    )
+
+    cv_inner = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
+
+    gs = GridSearchCV(
+        pipeline,
+        param_grid,
+        cv=cv_inner,
+        n_jobs=-1,
+        scoring="accuracy",
+        verbose=0,
+        refit=True,
+    )
+
+    gs.fit(X_train, y_train)
+    print(f"Best params (from inner CV): {gs.best_params_}")
+    print(f"Best CV score (inner): {gs.best_score_:.3f}")
+
+    test_score = gs.best_estimator_.score(X_test, y_test)
+    print(f"Held-out test score: {test_score:.3f}")
+
+    final_model = pipeline.set_params(**gs.best_params_)
+    final_model.fit(X, y)
+    cv_final = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    cv_scores = cross_val_score(final_model, X, y, cv=cv_final, n_jobs=-1)
+    print(
+        f"CV score final (refit on all data): {cv_scores.mean():.3f} ± {cv_scores.std():.3f}"
+    )
+
+    joblib.dump(final_model, out)
+    print(f"Modèle sauvegardé dans {out}")

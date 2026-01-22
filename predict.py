@@ -1,34 +1,38 @@
-import mne
-from mne.datasets import eegbci
-from train import PSDTransformer
+from joblib import load
 import numpy as np
-import joblib
+from train import load_data
 
-subject = 1
-test_runs = [4]
-chunk_duration = 2.0
-labels_map = {0: "T0", 1: "T1", 2: "T2"}
 
-pipeline = joblib.load("eeg_pipeline.pkl")
-print("Pipeline chargé")
+def predict_epochs(model_path, X, y):
+    try:
+        clf = load(model_path)
+    except FileNotFoundError:
+        raise Exception(f"File not found: {model_path}")
 
-paths = eegbci.load_data(subject, test_runs)
-
-for run, path in zip(test_runs, paths):
-    raw_run = mne.io.read_raw_edf(path, preload=True)
-    sfreq = raw_run.info["sfreq"]
-    n_samples_chunk = int(chunk_duration * sfreq)
-    n_samples_run = raw_run.n_times
-
-    starts = np.arange(0, n_samples_run, n_samples_chunk)
-    for i, s in enumerate(starts):
-        e = min(s + n_samples_chunk, n_samples_run)
-        chunk = raw_run.copy().crop(
-            tmin=s / sfreq, tmax=min(e / sfreq, raw_run.times[-1])
-        )
-
-        y_pred = pipeline.predict([chunk])
-
+    scores = []
+    print("epoch_nb =  [prediction]    [truth]    equal?")
+    print("---------------------------------------------")
+    for n in range(X.shape[0]):
+        pred = clf.predict(X[n : n + 1, :, :])[0]
+        truth = y[n]
         print(
-            f"Run {run}, Chunk {i} ({s / sfreq:.1f}-{e / sfreq:.1f}s) → predicted: {labels_map.get(y_pred[0], y_pred[0])}"
+            f"epoch {n:2} =      [{pred}]           [{truth}]      {'' if pred == truth else False}"
         )
+        scores.append(1 - abs(pred - truth))
+
+    return float(np.mean(scores).round(3))
+
+
+def predict(subjects, runs, experiment, model_path):
+    epochs, _ = load_data(subjects, runs, experiment)
+
+    if len(epochs) == 0:
+        print("No epochs found after preprocessing, aborting.")
+        return
+
+    X = epochs.get_data()
+    y = (epochs.events[:, -1] == 2).astype(int)
+    print((epochs.events[:, -1] == 2).astype(int))
+
+    mean_acc = predict_epochs(model_path, X, y)
+    print(f"Mean accuracy: {mean_acc}")
