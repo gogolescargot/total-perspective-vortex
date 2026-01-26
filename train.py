@@ -1,6 +1,7 @@
 import mne
 from mne.datasets import eegbci
 import numpy as np
+import logging
 from sklearn.pipeline import Pipeline
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.model_selection import (
@@ -9,9 +10,12 @@ from sklearn.model_selection import (
     cross_val_score,
     GridSearchCV,
 )
-from mne.decoding import CSP
+from csp import CSP
 from sklearn.preprocessing import StandardScaler
 import joblib
+
+mne.set_log_level("WARNING")
+logging.basicConfig(level=logging.WARNING)
 
 EXPERIMENTS = [
     [3, 7, 11],
@@ -131,7 +135,7 @@ def train(subjects, runs, experiment, out):
 
     pipeline = Pipeline(
         [
-            ("csp", CSP(n_components=4, reg=None, log=True, norm_trace=False)),
+            ("csp", CSP(n_components=4, reg=None)),
             ("scaler", StandardScaler()),
             ("lda", LDA(solver="lsqr", shrinkage="auto")),
         ]

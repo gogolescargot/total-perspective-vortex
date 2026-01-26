@@ -32,7 +32,6 @@ def predict(subjects, runs, experiment, model_path):
 
     X = epochs.get_data()
     y = (epochs.events[:, -1] == 2).astype(int)
-    print((epochs.events[:, -1] == 2).astype(int))
 
     mean_acc = predict_epochs(model_path, X, y)
     print(f"Mean accuracy: {mean_acc}")
