@@ -5,7 +5,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 class CSP(BaseEstimator, TransformerMixin):
     def __init__(self, n_components=4, reg=0.0, log=True):
         self.n_components = int(n_components)
-        self.reg = float(reg) if reg is not None else 0.0
+        self.reg = reg
         self.log = bool(log)
 
     def _validate_inputs(self, X, y=None):
@@ -24,8 +24,9 @@ class CSP(BaseEstimator, TransformerMixin):
         return cov / trace
 
     def _regularize(self, cov):
-        if self.reg:
-            cov = cov + self.reg * np.eye(cov.shape[0])
+        reg = float(self.reg) if self.reg is not None else 0.0
+        if reg:
+            cov = cov + reg * np.eye(cov.shape[0])
         return cov
 
     def _compute_class_covs(self, X, y):
