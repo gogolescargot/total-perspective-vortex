@@ -1,8 +1,8 @@
 SHELL := /bin/bash
 PY := python3
+PYBIN := $(VENV)/bin/python
 VENV := venv
 PIP := $(VENV)/bin/pip
-PYBIN := $(VENV)/bin/python
 
 .PHONY: all venv requirements clean fclean re lint
 
@@ -11,9 +11,9 @@ all: lint venv requirements
 
 lint:
 	@echo "Running flake8..."
-	@$(PY) -m flake8 --exclude=$(VENV); rc=$$?; \
+	@$(PYBIN) -m flake8 --exclude=$(VENV); rc=$$?; \
 	if [ $$rc -eq 0 ]; then \
-		echo "flake8: no issues"; \
+		echo "No issues"; \
 	fi; \
 	true
 	@echo
@@ -43,5 +43,6 @@ clean:
 fclean: clean
 	@echo "Removing virtual environment..."
 	-rm -rf $(VENV)
+	@echo
 
 re: fclean all

@@ -174,7 +174,8 @@ def train(subjects, runs, experiment, out):
     cv_final = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     cv_scores = cross_val_score(final_model, X, y, cv=cv_final, n_jobs=-1)
     print(
-        f"CV score final (refit on all data): {cv_scores.mean():.3f} ± {cv_scores.std():.3f}"
+        f"CV score final (refit on all data): \
+        {cv_scores.mean():.3f} ± {cv_scores.std():.3f}"
     )
 
     joblib.dump(final_model, out)

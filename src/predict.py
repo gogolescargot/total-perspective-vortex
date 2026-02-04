@@ -10,13 +10,14 @@ def predict_epochs(model_path, X, y):
         raise Exception(f"File not found: {model_path}")
 
     scores = []
-    print("epoch_nb =  [prediction]    [truth]    equal?")
+    print("epoch_nb = [prediction] [truth] equal?")
     print("---------------------------------------------")
     for n in range(X.shape[0]):
-        pred = clf.predict(X[n : n + 1, :, :])[0]
+        pred = clf.predict(X[n: n + 1, :, :])[0]
         truth = y[n]
         print(
-            f"epoch {n:2} =      [{pred}]           [{truth}]      {'' if pred == truth else False}"
+            f"epoch {n:2} = [{pred}] [{truth}] \
+            {'' if pred == truth else False}"
         )
         scores.append(1 - abs(pred - truth))
 
