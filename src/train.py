@@ -146,42 +146,36 @@ def train(subjects, runs, experiment, out):
         ]
     )
 
-    param_grid = {
-        "csp__n_components": [4, 6, 8],
-        "csp__reg": [None, 0.1, 0.5],
-    }
-
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, stratify=y, random_state=42
     )
 
-    cv_inner = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
-    gs = GridSearchCV(
-        pipeline,
-        param_grid,
-        cv=cv_inner,
-        n_jobs=-1,
+    param_grid = {
+        "csp__n_components": [2, 4, 6],
+        "csp__reg": [None, 0.01, 0.1],
+        "lda__shrinkage": [None, "auto"],
+    }
+
+    grid = GridSearchCV(
+        estimator=pipeline,
+        param_grid=param_grid,
         scoring="accuracy",
-        verbose=0,
+        cv=cv,
+        n_jobs=-1,
         refit=True,
     )
 
-    gs.fit(X_train, y_train)
-    print(f"Best params (from inner CV): {gs.best_params_}")
-    print(f"Best CV score (inner): {gs.best_score_:.3f}")
+    print("Running GridSearchCV on training data...")
+    grid.fit(X_train, y_train)
 
-    test_score = gs.best_estimator_.score(X_test, y_test)
-    print(f"Held-out test score: {test_score:.3f}")
+    print(f"Best params: {grid.best_params_}")
+    print(f"Best CV accuracy: {grid.best_score_:.4f}")
 
-    final_model = pipeline.set_params(**gs.best_params_)
-    final_model.fit(X, y)
-    cv_final = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-    cv_scores = cross_val_score(final_model, X, y, cv=cv_final, n_jobs=-1)
-    print(
-        f"CV score final (refit on all data): \
-        {cv_scores.mean():.3f} ± {cv_scores.std():.3f}"
-    )
+    best_model = grid.best_estimator_
+    test_score = best_model.score(X_test, y_test)
+    print(f"Test set accuracy (best model): {test_score:.4f}")
 
-    joblib.dump(final_model, out)
-    print(f"Modèle sauvegardé dans {out}")
+    joblib.dump(best_model, out)
+    print(f"Model saved to {out}")
