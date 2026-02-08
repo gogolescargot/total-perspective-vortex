@@ -41,6 +41,8 @@ def preprocess_raw(raw, l_freq=7.0, h_freq=30.0, sfreq=160):
 def load_epochs(raw, tmin=0.5, tmax=3.5):
     events, _ = mne.events_from_annotations(raw)
 
+    raw.set_annotations(None)
+
     valid_events = []
     for event in events:
         if event[2] in [1, 2]:
@@ -90,9 +92,12 @@ def load_data(
     subjects_list = []
 
     if experiment is None and runs is None:
-        runs = list(range(1, 15))
+        runs = list(range(3, 15))
     elif experiment is not None:
         runs = EXPERIMENTS[experiment]
+
+    if 1 in runs or 2 in runs:
+        raise ValueError("Runs 1 and 2 are not valid for motor imagery tasks")
 
     for subject in subjects:
         paths = eegbci.load_data(subject, runs)
@@ -150,7 +155,7 @@ def train(subjects, runs, experiment, out):
         X, y, test_size=0.2, stratify=y, random_state=42
     )
 
-    cv_inner = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
+    cv_inner = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
     gs = GridSearchCV(
         pipeline,

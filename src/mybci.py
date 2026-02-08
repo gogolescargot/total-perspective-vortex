@@ -19,7 +19,16 @@ def parse_args():
     p.add_argument("--runs", "-r", type=int, nargs="+")
     p.add_argument("--experiment", "-e", type=int, default=None)
     p.add_argument("--out", "-o", type=str, default="model.joblib")
-    return p.parse_args()
+
+    args = p.parse_args()
+
+    if args.subjects is not None:
+        args.subjects = list(dict.fromkeys(args.subjects))
+
+    if args.runs is not None:
+        args.runs = list(dict.fromkeys(args.runs))
+
+    return args
 
 
 def main():
