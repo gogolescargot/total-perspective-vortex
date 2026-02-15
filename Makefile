@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 PY := python3
 PYBIN := $(VENV)/bin/python
-VENV := venv
+VENV := .venv
 PIP := $(VENV)/bin/pip
 
 .PHONY: all venv requirements clean fclean re lint
