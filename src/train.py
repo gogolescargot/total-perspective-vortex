@@ -177,5 +177,8 @@ def train(subjects, runs, experiment, out):
     test_score = best_model.score(X_test, y_test)
     print(f"Test set accuracy (best model): {test_score:.4f}")
 
+    cross_val_scores = cross_val_score(best_model, X, y, cv=cv, n_jobs=-1)
+    print(f"Cross-validation scores (best model): {cross_val_scores}")
+
     joblib.dump(best_model, out)
     print(f"Model saved to {out}")

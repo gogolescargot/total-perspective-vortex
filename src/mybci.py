@@ -2,7 +2,6 @@ from argparse import ArgumentParser
 import visualize
 import train
 import predict
-import signal
 
 
 def parse_args():
@@ -32,26 +31,21 @@ def parse_args():
 
 
 def main():
-    # try:
-    signal.signal(
-        signal.SIGINT,
-        lambda *_: (
-            print("\033[2Dtotal-perspective-vortex: CTRL+C sent by user."),
-            exit(1),
-        ),
-    )
+    try:
+        args = parse_args()
+        if args.mode == "visualize":
+            visualize.visualize(args.subjects, args.runs)
+        elif args.mode == "train":
+            train.train(args.subjects, args.runs, args.experiment, args.out)
+        elif args.mode == "predict":
+            predict.predict(
+                args.subjects, args.runs, args.experiment, args.out
+            )
 
-    args = parse_args()
-    if args.mode == "visualize":
-        visualize.visualize(args.subjects, args.runs)
-    elif args.mode == "train":
-        train.train(args.subjects, args.runs, args.experiment, args.out)
-    elif args.mode == "predict":
-        predict.predict(args.subjects, args.runs, args.experiment, args.out)
-
-
-# except Exception as ex:
-# print(f"Unexpected error occured : {ex}")
+    except KeyboardInterrupt:
+        print("Process interrupted by user, exiting.")
+    except Exception as ex:
+        print(f"Unexpected error occured : {ex}")
 
 
 if __name__ == "__main__":
