@@ -10,7 +10,7 @@ def predict_epochs(model_path, X, y):
     print("epoch_nb = [prediction] [truth] equal?")
     print("---------------------------------------------")
     for n in range(X.shape[0]):
-        pred = clf.predict(X[n : n + 1, :, :])[0]
+        pred = clf.predict(X[n: n + 1, :, :])[0]
         truth = y[n]
         print(
             f"epoch {n:2} = [{pred}] [{truth}] \
