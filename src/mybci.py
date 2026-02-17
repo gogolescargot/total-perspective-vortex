@@ -48,6 +48,8 @@ def main():
         print(f"Value error: {ve}")
     except RuntimeError as re:
         print(f"Runtime error: {re}")
+    except FileNotFoundError as fnfe:
+        print(f"File not found: {fnfe}")
     except Exception as ex:
         print(f"Unexpected error occured : {ex}")
 
