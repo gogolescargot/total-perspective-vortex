@@ -171,14 +171,17 @@ def train(subjects, runs, experiment, out):
     grid.fit(X_train, y_train)
 
     print(f"Best params: {grid.best_params_}")
-    print(f"Best CV accuracy: {grid.best_score_:.4f}")
 
     best_model = grid.best_estimator_
+
+    cross_val_scores = cross_val_score(
+        grid.best_estimator_, X_train, y_train, cv=cv, n_jobs=-1
+    )
+    print(f"Cross-validation scores: {cross_val_scores}")
+    print(f"Best CV accuracy: {grid.best_score_:.4f}")
+
     test_score = best_model.score(X_test, y_test)
     print(f"Test set accuracy (best model): {test_score:.4f}")
-
-    cross_val_scores = cross_val_score(best_model, X, y, cv=cv, n_jobs=-1)
-    print(f"Cross-validation scores (best model): {cross_val_scores}")
 
     joblib.dump(best_model, out)
     print(f"Model saved to {out}")
