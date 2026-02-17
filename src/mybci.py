@@ -44,6 +44,10 @@ def main():
 
     except KeyboardInterrupt:
         print("Process interrupted by user, exiting.")
+    except ValueError as ve:
+        print(f"Value error: {ve}")
+    except RuntimeError as re:
+        print(f"Runtime error: {re}")
     except Exception as ex:
         print(f"Unexpected error occured : {ex}")
 
