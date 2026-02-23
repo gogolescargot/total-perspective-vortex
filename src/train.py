@@ -87,6 +87,7 @@ def load_data(
     l_freq=7.0,
     h_freq=30.0,
     sfreq=160,
+    data_path=None,
 ):
     epochs_list = []
     subjects_list = []
@@ -100,7 +101,7 @@ def load_data(
         raise ValueError("Runs 1 and 2 are not valid for motor imagery tasks")
 
     for subject in subjects:
-        paths = eegbci.load_data(subject, runs)
+        paths = eegbci.load_data(subject, runs, path=data_path)
         for path in paths:
             raw = mne.io.read_raw_edf(path, preload=False)
             raw.load_data()
@@ -125,9 +126,16 @@ def load_data(
     return all_epochs, all_subjects
 
 
-def train(subjects, runs, experiment, out):
+def train(subjects, runs, experiment, out, path=None):
     epochs, _ = load_data(
-        subjects, runs, experiment, tmin=0.5, tmax=3.5, l_freq=8.0, h_freq=30.0
+        subjects,
+        runs,
+        experiment,
+        tmin=0.5,
+        tmax=3.5,
+        l_freq=8.0,
+        h_freq=30.0,
+        data_path=path,
     )
 
     if len(epochs) == 0:

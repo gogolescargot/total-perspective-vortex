@@ -3,11 +3,11 @@ from mne.datasets import eegbci
 import matplotlib.pyplot as plt
 
 
-def visualize(subjects, runs):
+def visualize(subjects, runs, path=None):
     subject = subjects
     runs = runs
 
-    paths = eegbci.load_data(subject, runs)
+    paths = eegbci.load_data(subject, runs, path=path)
     raws = [mne.io.read_raw_edf(p, preload=True) for p in paths]
     raw = mne.concatenate_raws(raws)
     raw.plot(title="Raw signal")

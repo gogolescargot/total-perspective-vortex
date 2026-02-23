@@ -15,6 +15,13 @@ def parse_args():
     p.add_argument(
         "--subjects", "-s", type=int, nargs="+", default=list(range(1, 110))
     )
+    p.add_argument(
+        "--path",
+        "-p",
+        type=str,
+        default=None,
+        help="Path to MNE/eegbci data",
+    )
     p.add_argument("--runs", "-r", type=int, nargs="+")
     p.add_argument("--experiment", "-e", type=int, default=None)
     p.add_argument("--out", "-o", type=str, default="model.joblib")
@@ -34,12 +41,22 @@ def main():
     try:
         args = parse_args()
         if args.mode == "visualize":
-            visualize.visualize(args.subjects, args.runs)
+            visualize.visualize(args.subjects, args.runs, args.path)
         elif args.mode == "train":
-            train.train(args.subjects, args.runs, args.experiment, args.out)
+            train.train(
+                args.subjects,
+                args.runs,
+                args.experiment,
+                args.out,
+                args.path,
+            )
         elif args.mode == "predict":
             predict.predict(
-                args.subjects, args.runs, args.experiment, args.out
+                args.subjects,
+                args.runs,
+                args.experiment,
+                args.out,
+                args.path,
             )
 
     except KeyboardInterrupt:

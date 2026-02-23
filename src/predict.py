@@ -10,7 +10,7 @@ def predict_epochs(model_path, X, y):
     print("epoch_nb = [prediction] [truth] equal?")
     print("---------------------------------------------")
     for n in range(X.shape[0]):
-        pred = clf.predict(X[n: n + 1, :, :])[0]
+        pred = clf.predict(X[n : n + 1, :, :])[0]
         truth = y[n]
         print(
             f"epoch {n:2} = [{pred}] [{truth}] \
@@ -21,8 +21,8 @@ def predict_epochs(model_path, X, y):
     return float(np.mean(scores).round(3))
 
 
-def predict(subjects, runs, experiment, model_path):
-    epochs, _ = load_data(subjects, runs, experiment)
+def predict(subjects, runs, experiment, model_path, path=None):
+    epochs, _ = load_data(subjects, runs, experiment, data_path=path)
 
     if len(epochs) == 0:
         print("No epochs found after preprocessing, aborting.")
