@@ -22,8 +22,6 @@ EXPERIMENTS = [
     [4, 8, 12],
     [5, 9, 13],
     [6, 10, 14],
-    [3, 4, 7, 8, 11, 12],
-    [5, 6, 9, 10, 13, 14],
 ]
 
 
@@ -92,6 +90,8 @@ def load_data(
     epochs_list = []
     subjects_list = []
 
+    if subjects is None:
+        subjects = list(range(1, 110))
     if experiment is None and runs is None:
         runs = list(range(3, 15))
     elif experiment is not None:
@@ -103,7 +103,7 @@ def load_data(
     for subject in subjects:
         paths = eegbci.load_data(subject, runs, path=data_path)
         for path in paths:
-            raw = mne.io.read_raw_edf(path, preload=False)
+            raw = mne.io.read_raw_edf(path, preload=False, verbose="ERROR")
             raw.load_data()
 
             raw = preprocess_raw(raw, l_freq, h_freq, sfreq)

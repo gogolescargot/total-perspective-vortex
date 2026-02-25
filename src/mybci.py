@@ -13,16 +13,14 @@ def parse_args():
         help="Mode to run (positional, no dashes)",
     )
     p.add_argument(
-        "--subjects", "-s", type=int, nargs="+", default=list(range(1, 110))
-    )
-    p.add_argument(
         "--path",
         "-p",
         type=str,
         default=None,
         help="Path to MNE/eegbci data",
     )
-    p.add_argument("--runs", "-r", type=int, nargs="+")
+    p.add_argument("--subjects", "-s", type=int, nargs="+", default=None)
+    p.add_argument("--runs", "-r", type=int, nargs="+", default=None)
     p.add_argument("--experiment", "-e", type=int, default=None)
     p.add_argument("--out", "-o", type=str, default="model.joblib")
 
