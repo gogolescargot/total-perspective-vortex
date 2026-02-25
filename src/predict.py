@@ -1,6 +1,6 @@
 from joblib import load
 import numpy as np
-from train import load_data, EXPERIMENTS
+from train import load_data, EXPERIMENTS, L_FREQ, H_FREQ, SFREQ, TMIN, TMAX
 
 
 def predict_epochs(model_path, X, y):
@@ -25,7 +25,17 @@ def predict_all_experiments(model_path, path=None):
     all_accs = []
     for exp_idx in range(len(EXPERIMENTS)):
         print(f"\nExperiment {exp_idx + 1} (runs {EXPERIMENTS[exp_idx]})")
-        epochs, _ = load_data(None, None, exp_idx, data_path=path)
+        epochs, _ = load_data(
+            None,
+            None,
+            exp_idx,
+            tmin=TMIN,
+            tmax=TMAX,
+            l_freq=L_FREQ,
+            h_freq=H_FREQ,
+            sfreq=SFREQ,
+            data_path=path,
+        )
 
         if len(epochs) == 0:
             print("No epochs found, skipping.")
@@ -53,7 +63,17 @@ def predict(subjects, runs, experiment, model_path, path=None):
         predict_all_experiments(model_path, path)
         return
 
-    epochs, _ = load_data(subjects, runs, experiment, data_path=path)
+    epochs, _ = load_data(
+        subjects,
+        runs,
+        experiment,
+        tmin=TMIN,
+        tmax=TMAX,
+        l_freq=L_FREQ,
+        h_freq=H_FREQ,
+        sfreq=SFREQ,
+        data_path=path,
+    )
 
     if len(epochs) == 0:
         print("No epochs found after preprocessing, aborting.")

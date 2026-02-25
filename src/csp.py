@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.linalg import eigh
 from sklearn.base import BaseEstimator, TransformerMixin
 
 
@@ -48,19 +49,14 @@ class CSP(BaseEstimator, TransformerMixin):
         return C0 + C1
 
     def _solve_generalized_eig(self, C0, composite):
-        M = np.linalg.pinv(composite).dot(C0)
-        eigvals, eigvecs = np.linalg.eig(M)
-        eigvals = np.real(eigvals)
-        eigvecs = np.real(eigvecs)
+        eigvals, eigvecs = eigh(C0, composite)
         return eigvals, eigvecs
-
-    def _sort_eigens(self, eigvals, eigvecs):
-        order = np.argsort(eigvals)[::-1]
-        return eigvals[order], eigvecs[:, order]
 
     def _select_filters(self, eigvals, eigvecs):
         half = self.n_components // 2
-        selected = np.concatenate([np.arange(half), np.arange(-half, 0)])
+        selected = np.concatenate(
+            [np.arange(half), np.arange(len(eigvals) - half, len(eigvals))]
+        )
         W = eigvecs[:, selected].T
         return W, eigvals[selected]
 
@@ -89,7 +85,6 @@ class CSP(BaseEstimator, TransformerMixin):
         composite = self._composite_cov(C0, C1)
 
         eigvals, eigvecs = self._solve_generalized_eig(C0, composite)
-        eigvals, eigvecs = self._sort_eigens(eigvals, eigvecs)
 
         W, selected_eigvals = self._select_filters(eigvals, eigvecs)
 

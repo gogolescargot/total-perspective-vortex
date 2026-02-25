@@ -4,18 +4,24 @@ import numpy as np
 import logging
 from sklearn.pipeline import Pipeline
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+from csp import CSP
 from sklearn.model_selection import (
     train_test_split,
     StratifiedKFold,
     cross_val_score,
     GridSearchCV,
 )
-from csp import CSP
-from sklearn.preprocessing import StandardScaler
+
 import joblib
 
 mne.set_log_level("WARNING")
 logging.basicConfig(level=logging.WARNING)
+
+L_FREQ = 8.0
+H_FREQ = 30.0
+SFREQ = 160
+TMIN = 0.5
+TMAX = 3.5
 
 EXPERIMENTS = [
     [3, 7, 11],
@@ -25,7 +31,7 @@ EXPERIMENTS = [
 ]
 
 
-def preprocess_raw(raw, l_freq=7.0, h_freq=30.0, sfreq=160):
+def preprocess_raw(raw, l_freq=L_FREQ, h_freq=H_FREQ, sfreq=SFREQ):
     if abs(raw.info.get("sfreq", 0) - sfreq) > 1e-8:
         raw.resample(sfreq, npad="auto")
 
@@ -36,7 +42,7 @@ def preprocess_raw(raw, l_freq=7.0, h_freq=30.0, sfreq=160):
     return raw
 
 
-def load_epochs(raw, tmin=0.5, tmax=3.5):
+def load_epochs(raw, tmin=TMIN, tmax=TMAX):
     events, _ = mne.events_from_annotations(raw)
 
     raw.set_annotations(None)
@@ -80,11 +86,11 @@ def load_data(
     subjects,
     runs,
     experiment,
-    tmin=0.5,
-    tmax=3.5,
-    l_freq=7.0,
-    h_freq=30.0,
-    sfreq=160,
+    tmin=TMIN,
+    tmax=TMAX,
+    l_freq=L_FREQ,
+    h_freq=H_FREQ,
+    sfreq=SFREQ,
     data_path=None,
 ):
     epochs_list = []
@@ -131,10 +137,10 @@ def train(subjects, runs, experiment, out, path=None):
         subjects,
         runs,
         experiment,
-        tmin=0.5,
-        tmax=3.5,
-        l_freq=8.0,
-        h_freq=30.0,
+        tmin=TMIN,
+        tmax=TMAX,
+        l_freq=L_FREQ,
+        h_freq=H_FREQ,
         data_path=path,
     )
 
@@ -149,7 +155,6 @@ def train(subjects, runs, experiment, out, path=None):
     pipeline = Pipeline(
         [
             ("csp", CSP(n_components=4, reg=None)),
-            ("scaler", StandardScaler()),
             ("lda", LDA(solver="lsqr", shrinkage="auto")),
         ]
     )
@@ -161,9 +166,8 @@ def train(subjects, runs, experiment, out, path=None):
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
     param_grid = {
-        "csp__n_components": [2, 4, 6],
-        "csp__reg": [None, 0.01, 0.1],
-        "lda__shrinkage": [None, "auto"],
+        "csp__n_components": [4, 6, 8],
+        "csp__reg": [None, 0.05, 0.1],
     }
 
     grid = GridSearchCV(

@@ -1,6 +1,7 @@
 import mne
 from mne.datasets import eegbci
 import matplotlib.pyplot as plt
+from train import L_FREQ, H_FREQ
 
 
 def visualize(subjects, runs, path=None):
@@ -14,7 +15,10 @@ def visualize(subjects, runs, path=None):
 
     raw.notch_filter(50.0, fir_design="firwin")
     raw_pp = raw.copy().filter(
-        l_freq=7, h_freq=30, fir_design="firwin", skip_by_annotation="edge"
+        l_freq=L_FREQ,
+        h_freq=H_FREQ,
+        fir_design="firwin",
+        skip_by_annotation="edge",
     )
-    raw_pp.plot(title="Preprocessed signal (7-30 Hz bandpass)")
+    raw_pp.plot(title=f"Preprocessed signal ({L_FREQ}-{H_FREQ} Hz bandpass)")
     plt.show()
