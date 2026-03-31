@@ -1,12 +1,12 @@
 SHELL := /bin/bash
 PY := python3
-PYBIN := $(VENV)/bin/python
 VENV := .venv
+PYBIN := $(VENV)/bin/python
 PIP := $(VENV)/bin/pip
 
 .PHONY: all venv requirements clean fclean re lint
 
-all: lint venv requirements
+all: venv requirements lint
 	@echo 'To activate the virtual environment, run: source $(VENV)/bin/activate'
 
 lint:
